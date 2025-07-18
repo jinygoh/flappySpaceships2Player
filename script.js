@@ -503,7 +503,8 @@ function drawHUD() {
     ctx.fillRect(50, 20, player1.health * 2, 20);
     ctx.fillStyle = 'white';
     ctx.font = '20px sans-serif';
-    ctx.fillText('Player 1', 50, 60);
+    ctx.textAlign = 'center';
+    ctx.fillText('Player 1', 150, 60);
 
     // Player 2 Health
     ctx.fillStyle = 'red';
