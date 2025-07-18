@@ -1,6 +1,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 let gameState = 'start'; // 'start', 'playing', 'gameOver'
 
 const gravity = 0.5;
@@ -19,6 +22,8 @@ class Player {
         this.health = 100;
         this.shootCooldown = 0;
         this.controls = controls;
+        this.invulnerable = true;
+        setTimeout(() => this.invulnerable = false, 2000);
     }
 
     flap() {
@@ -31,7 +36,18 @@ class Player {
             const projectileX = direction === 1 ? this.x + this.width : this.x;
             const projectileY = this.y + this.height / 2;
 
-            if (this.tripleShot) {
+            if (this.laserBeam) {
+                // The laser beam is drawn in the draw function, so we just set the cooldown here.
+                this.shootCooldown = 10;
+                return;
+            }
+
+            if (this.homingMissiles) {
+                const opponent = this === player1 ? player2 : player1;
+                const p = new Projectile(projectileX, projectileY, 5, 'green', direction, this, true);
+                p.target = opponent;
+                projectiles.push(p);
+            } else if (this.tripleShot) {
                 for (let i = -1; i <= 1; i++) {
                     const angle = i * 0.2;
                     const p = new Projectile(projectileX, projectileY, 10, this.color, direction, this);
@@ -59,11 +75,23 @@ class Player {
         if (this.y + this.height > canvas.height) {
             this.y = canvas.height - this.height;
             this.vy = 0;
+            if (gameState === 'playing' && this.health > 0 && !this.invulnerable) {
+                this.health -= 1;
+                if (this.health <= 0) {
+                    gameState = 'gameOver';
+                }
+            }
         }
 
         if (this.y < 0) {
             this.y = 0;
             this.vy = 0;
+            if (gameState === 'playing' && this.health > 0 && !this.invulnerable) {
+                this.health -= 1;
+                if (this.health <= 0) {
+                    gameState = 'gameOver';
+                }
+            }
         }
 
         if (this.shootCooldown > 0) {
@@ -75,13 +103,42 @@ class Player {
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         ctx.rotate(this.vy * 0.05);
+
+        if (this.ghost) {
+            ctx.globalAlpha = 0.5;
+        }
+
+        // Body
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2, -this.height / 4, this.width, this.height / 2);
+
+        // Cockpit
+        ctx.fillStyle = 'white';
+        ctx.fillRect(-this.width / 4, -this.height / 2, this.width / 2, this.height / 4);
+
+        // Wings
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(0, -this.height / 2);
-        ctx.lineTo(this.width / 2, this.height / 2);
-        ctx.lineTo(-this.width / 2, this.height / 2);
+        ctx.moveTo(-this.width / 2, -this.height / 4);
+        ctx.lineTo(-this.width / 2 - 10, -this.height / 4 - 5);
+        ctx.lineTo(-this.width / 2, this.height / 4);
         ctx.closePath();
         ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(this.width / 2, -this.height / 4);
+        ctx.lineTo(this.width / 2 + 10, -this.height / 4 - 5);
+        ctx.lineTo(this.width / 2, this.height / 4);
+        ctx.closePath();
+        ctx.fill();
+
+        if (this.laserBeam) {
+            ctx.fillStyle = 'red';
+            const laserWidth = this.x > canvas.width / 2 ? this.x : canvas.width - this.x;
+            const direction = this.x > canvas.width / 2 ? -1 : 1;
+            ctx.fillRect(direction * this.width / 2, -2.5, direction * laserWidth, 5);
+        }
+
         ctx.restore();
     }
 }
@@ -150,7 +207,10 @@ const powerUpTypes = {
     RAPID_FIRE: 'rapid_fire',
     TRIPLE_SHOT: 'triple_shot',
     PIERCING_SHOT: 'piercing_shot',
-    SCREEN_BOMB: 'screen_bomb'
+    SCREEN_BOMB: 'screen_bomb',
+    HOMING_MISSILES: 'homing_missiles',
+    LASER_BEAM: 'laser_beam',
+    GHOST: 'ghost'
 };
 
 class PowerUp {
@@ -168,12 +228,92 @@ class PowerUp {
     }
 
     draw() {
-        ctx.fillStyle = 'yellow';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.fillStyle = 'black';
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.type[0].toUpperCase(), this.x + this.width / 2, this.y + this.height / 1.5);
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+        switch (this.type) {
+            case powerUpTypes.HEALTH:
+                ctx.fillStyle = 'red';
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('+', 0, 7);
+                break;
+            case powerUpTypes.SHIELD:
+                ctx.fillStyle = '#00BFFF'; // DeepSkyBlue
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(this.width / 2, this.height / 2);
+                ctx.lineTo(-this.width / 2, this.height / 2);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            case powerUpTypes.RAPID_FIRE:
+                ctx.fillStyle = 'yellow';
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(-this.width / 2 + (i * 10), -this.height / 2, 5, this.height);
+                }
+                break;
+            case powerUpTypes.TRIPLE_SHOT:
+                ctx.fillStyle = 'purple';
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, -this.height / 4 + (i * 10), 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+            case powerUpTypes.PIERCING_SHOT:
+                ctx.fillStyle = 'cyan';
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(this.width / 2, 0);
+                ctx.lineTo(0, this.height / 2);
+                ctx.lineTo(-this.width / 2, 0);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            case powerUpTypes.SCREEN_BOMB:
+                ctx.fillStyle = 'orange';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('B', 0, 7);
+                break;
+            case powerUpTypes.HOMING_MISSILES:
+                ctx.fillStyle = 'green';
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(this.width / 2, 0);
+                ctx.lineTo(0, this.height / 2);
+                ctx.lineTo(-this.width / 2, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('H', 0, 4);
+                break;
+            case powerUpTypes.LASER_BEAM:
+                ctx.fillStyle = 'red';
+                ctx.fillRect(-this.width / 2, -5, this.width, 10);
+                break;
+            case powerUpTypes.GHOST:
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('G', 0, 7);
+                break;
+        }
+
+        ctx.restore();
     }
 }
 
@@ -193,13 +333,30 @@ class Asteroid {
     }
 
     draw() {
-        ctx.fillStyle = 'gray';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = '#8B4513'; // SaddleBrown
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width / 2, this.y);
+        ctx.lineTo(this.x + this.width, this.y + this.height / 3);
+        ctx.lineTo(this.x + this.width * 0.8, this.y + this.height);
+        ctx.lineTo(this.x + this.width * 0.2, this.y + this.height);
+        ctx.lineTo(this.x, this.y + this.height / 3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#A0522D'; // Sienna
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width / 2, this.y + this.height * 0.1);
+        ctx.lineTo(this.x + this.width * 0.9, this.y + this.height / 3);
+        ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.9);
+        ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.9);
+        ctx.lineTo(this.x + this.width * 0.1, this.y + this.height / 3);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 
 class Projectile {
-    constructor(x, y, speed, color, direction, owner) {
+    constructor(x, y, speed, color, direction, owner, isHoming = false) {
         this.x = x;
         this.y = y;
         this.speed = speed;
@@ -208,15 +365,32 @@ class Projectile {
         this.width = 20;
         this.height = 10;
         this.owner = owner;
+        this.isHoming = isHoming;
+        this.target = null;
+        this.vx = speed * direction;
+        this.vy = 0;
     }
 
     update() {
-        this.x += this.speed * this.direction;
+        if (this.isHoming && this.target) {
+            const dx = this.target.x - this.x;
+            const dy = this.target.y - this.y;
+            const angle = Math.atan2(dy, dx);
+            this.vx = Math.cos(angle) * this.speed;
+            this.vy = Math.sin(angle) * this.speed;
+        }
+        this.x += this.vx;
+        this.y += this.vy;
     }
 
     draw() {
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.width, this.y + this.height / 2);
+        ctx.lineTo(this.x, this.y + this.height);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 
@@ -325,6 +499,9 @@ function update() {
 }
 
 function checkCollision(obj1, obj2) {
+    if (obj1.ghost || obj2.ghost) {
+        return false;
+    }
     return obj1.x < obj2.x + obj2.width &&
            obj1.x + obj1.width > obj2.x &&
            obj1.y < obj2.y + obj2.height &&
@@ -355,6 +532,18 @@ function applyPowerUp(player, type) {
             break;
         case powerUpTypes.SCREEN_BOMB:
             asteroids.length = 0;
+            break;
+        case powerUpTypes.HOMING_MISSILES:
+            player.homingMissiles = true;
+            setTimeout(() => player.homingMissiles = false, 10000);
+            break;
+        case powerUpTypes.LASER_BEAM:
+            player.laserBeam = true;
+            setTimeout(() => player.laserBeam = false, 3000);
+            break;
+        case powerUpTypes.GHOST:
+            player.ghost = true;
+            setTimeout(() => player.ghost = false, 5000);
             break;
     }
 }
@@ -389,12 +578,13 @@ function draw() {
 function drawHUD() {
     // Player 1 Health
     ctx.fillStyle = 'red';
-    ctx.fillRect(20, 20, 200, 20);
+    ctx.fillRect(50, 20, 200, 20);
     ctx.fillStyle = 'green';
-    ctx.fillRect(20, 20, player1.health * 2, 20);
+    ctx.fillRect(50, 20, player1.health * 2, 20);
     ctx.fillStyle = 'white';
     ctx.font = '20px sans-serif';
-    ctx.fillText('Player 1', 20, 60);
+    ctx.textAlign = 'center';
+    ctx.fillText('Player 1', 150, 60);
 
     // Player 2 Health
     ctx.fillStyle = 'red';
@@ -405,14 +595,17 @@ function drawHUD() {
     ctx.fillText('Player 2', canvas.width - 90, 60);
 
     // Power-up indicators
-    drawPowerUpIndicator(player1, 20, 80);
-    drawPowerUpIndicator(player2, canvas.width - 220, 80);
+    ctx.textAlign = 'left';
+    drawPowerUpIndicator(player1, 50, 80);
+    ctx.textAlign = 'right';
+    drawPowerUpIndicator(player2, canvas.width - 50, 80);
 }
 
 function drawPowerUpIndicator(player, x, y) {
     let powerUpY = y;
+    ctx.font = '16px sans-serif';
     if (player.shield) {
-        ctx.fillStyle = 'blue';
+        ctx.fillStyle = '#00BFFF'; // DeepSkyBlue
         ctx.fillText('Shield', x, powerUpY);
         powerUpY += 20;
     }
@@ -436,11 +629,28 @@ function drawStartScreen() {
     ctx.fillStyle = 'white';
     ctx.font = '48px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Pixel Wing Duel', canvas.width / 2, canvas.height / 3);
+    ctx.fillText('Pixel Wing Duel', canvas.width / 2, canvas.height / 6);
     ctx.font = '24px sans-serif';
-    ctx.fillText('Player 1 Controls: W/S', canvas.width / 2, canvas.height / 2);
-    ctx.fillText('Player 2 Controls: Up/Down Arrows', canvas.width / 2, canvas.height / 2 + 40);
-    ctx.fillText('Press Space to Start', canvas.width / 2, canvas.height / 2 + 100);
+    ctx.fillText('Player 1: W (Flap) / S (Shoot)', canvas.width / 2, canvas.height / 4);
+    ctx.fillText('Player 2: Up Arrow (Flap) / Down Arrow (Shoot)', canvas.width / 2, canvas.height / 4 + 40);
+
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Power-ups:', canvas.width / 2 - 200, canvas.height / 2 - 20);
+    ctx.font = '16px sans-serif';
+    ctx.fillText('+ (Health): Restores 25 health.', canvas.width / 2 - 200, canvas.height / 2 + 10);
+    ctx.fillText('S (Shield): Makes you invincible for 5 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 40);
+    ctx.fillText('R (Rapid Fire): Increases your fire rate for 5 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 70);
+    ctx.fillText('T (Triple Shot): Shoots three projectiles at once for 7 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 100);
+    ctx.fillText('P (Piercing Shot): Your projectiles pierce through asteroids for 7 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 130);
+    ctx.fillText('B (Bomb): Destroys all asteroids on the screen.', canvas.width / 2 - 200, canvas.height / 2 + 160);
+    ctx.fillText('H (Homing Missiles): Your projectiles track the opponent for 10 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 190);
+    ctx.fillText('L (Laser Beam): Shoots a continuous laser beam for 3 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 220);
+    ctx.fillText('G (Ghost): You can pass through asteroids and projectiles for 5 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 250);
+
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press Space to Start', canvas.width / 2, canvas.height - 50);
 }
 
 function drawEndScreen() {
