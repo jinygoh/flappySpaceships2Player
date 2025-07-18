@@ -22,6 +22,8 @@ class Player {
         this.health = 100;
         this.shootCooldown = 0;
         this.controls = controls;
+        this.invulnerable = true;
+        setTimeout(() => this.invulnerable = false, 2000);
     }
 
     flap() {
@@ -62,11 +64,23 @@ class Player {
         if (this.y + this.height > canvas.height) {
             this.y = canvas.height - this.height;
             this.vy = 0;
+            if (gameState === 'playing' && this.health > 0 && !this.invulnerable) {
+                this.health -= 1;
+                if (this.health <= 0) {
+                    gameState = 'gameOver';
+                }
+            }
         }
 
         if (this.y < 0) {
             this.y = 0;
             this.vy = 0;
+            if (gameState === 'playing' && this.health > 0 && !this.invulnerable) {
+                this.health -= 1;
+                if (this.health <= 0) {
+                    gameState = 'gameOver';
+                }
+            }
         }
 
         if (this.shootCooldown > 0) {
@@ -202,7 +216,7 @@ class PowerUp {
                 ctx.fillText('+', 0, 7);
                 break;
             case powerUpTypes.SHIELD:
-                ctx.fillStyle = 'blue';
+                ctx.fillStyle = '#00BFFF'; // DeepSkyBlue
                 ctx.beginPath();
                 ctx.moveTo(0, -this.height / 2);
                 ctx.lineTo(this.width / 2, this.height / 2);
@@ -484,12 +498,12 @@ function draw() {
 function drawHUD() {
     // Player 1 Health
     ctx.fillStyle = 'red';
-    ctx.fillRect(20, 20, 200, 20);
+    ctx.fillRect(30, 20, 200, 20);
     ctx.fillStyle = 'green';
-    ctx.fillRect(20, 20, player1.health * 2, 20);
+    ctx.fillRect(30, 20, player1.health * 2, 20);
     ctx.fillStyle = 'white';
     ctx.font = '20px sans-serif';
-    ctx.fillText('Player 1', 20, 60);
+    ctx.fillText('Player 1', 30, 60);
 
     // Player 2 Health
     ctx.fillStyle = 'red';
@@ -534,11 +548,25 @@ function drawStartScreen() {
     ctx.fillStyle = 'white';
     ctx.font = '48px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Pixel Wing Duel', canvas.width / 2, canvas.height / 3);
+    ctx.fillText('Pixel Wing Duel', canvas.width / 2, canvas.height / 6);
     ctx.font = '24px sans-serif';
-    ctx.fillText('Player 1: W (Flap) / S (Shoot)', canvas.width / 2, canvas.height / 2);
-    ctx.fillText('Player 2: Up Arrow (Flap) / Down Arrow (Shoot)', canvas.width / 2, canvas.height / 2 + 40);
-    ctx.fillText('Press Space to Start', canvas.width / 2, canvas.height / 2 + 100);
+    ctx.fillText('Player 1: W (Flap) / S (Shoot)', canvas.width / 2, canvas.height / 4);
+    ctx.fillText('Player 2: Up Arrow (Flap) / Down Arrow (Shoot)', canvas.width / 2, canvas.height / 4 + 40);
+
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Power-ups:', canvas.width / 2 - 200, canvas.height / 2 - 20);
+    ctx.font = '16px sans-serif';
+    ctx.fillText('+ (Health): Restores 25 health.', canvas.width / 2 - 200, canvas.height / 2 + 10);
+    ctx.fillText('S (Shield): Makes you invincible for 5 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 40);
+    ctx.fillText('R (Rapid Fire): Increases your fire rate for 5 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 70);
+    ctx.fillText('T (Triple Shot): Shoots three projectiles at once for 7 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 100);
+    ctx.fillText('P (Piercing Shot): Your projectiles pierce through asteroids for 7 seconds.', canvas.width / 2 - 200, canvas.height / 2 + 130);
+    ctx.fillText('B (Bomb): Destroys all asteroids on the screen.', canvas.width / 2 - 200, canvas.height / 2 + 160);
+
+    ctx.font = '24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press Space to Start', canvas.width / 2, canvas.height - 100);
 }
 
 function drawEndScreen() {
