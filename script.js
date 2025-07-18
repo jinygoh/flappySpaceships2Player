@@ -296,24 +296,6 @@ function update() {
         if (a.y > canvas.height) {
             asteroids.splice(index, 1);
         }
-        if(checkCollision(player1, a)) {
-            if (!player1.shield) {
-                player1.health -= 10;
-                if (player1.health <= 0) {
-                    gameState = 'gameOver';
-                }
-            }
-            asteroids.splice(index, 1);
-        }
-        if(checkCollision(player2, a)) {
-            if (!player2.shield) {
-                player2.health -= 10;
-                if (player2.health <= 0) {
-                    gameState = 'gameOver';
-                }
-            }
-            asteroids.splice(index, 1);
-        }
     });
 
     powerUps.forEach((p, index) => {
