@@ -1,6 +1,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 let gameState = 'start'; // 'start', 'playing', 'gameOver'
 
 const gravity = 0.5;
@@ -293,6 +296,24 @@ function update() {
         if (a.y > canvas.height) {
             asteroids.splice(index, 1);
         }
+        if(checkCollision(player1, a)) {
+            if (!player1.shield) {
+                player1.health -= 10;
+                if (player1.health <= 0) {
+                    gameState = 'gameOver';
+                }
+            }
+            asteroids.splice(index, 1);
+        }
+        if(checkCollision(player2, a)) {
+            if (!player2.shield) {
+                player2.health -= 10;
+                if (player2.health <= 0) {
+                    gameState = 'gameOver';
+                }
+            }
+            asteroids.splice(index, 1);
+        }
     });
 
     powerUps.forEach((p, index) => {
@@ -405,12 +426,15 @@ function drawHUD() {
     ctx.fillText('Player 2', canvas.width - 90, 60);
 
     // Power-up indicators
+    ctx.textAlign = 'left';
     drawPowerUpIndicator(player1, 20, 80);
-    drawPowerUpIndicator(player2, canvas.width - 220, 80);
+    ctx.textAlign = 'right';
+    drawPowerUpIndicator(player2, canvas.width - 20, 80);
 }
 
 function drawPowerUpIndicator(player, x, y) {
     let powerUpY = y;
+    ctx.font = '16px sans-serif';
     if (player.shield) {
         ctx.fillStyle = 'blue';
         ctx.fillText('Shield', x, powerUpY);
@@ -438,8 +462,8 @@ function drawStartScreen() {
     ctx.textAlign = 'center';
     ctx.fillText('Pixel Wing Duel', canvas.width / 2, canvas.height / 3);
     ctx.font = '24px sans-serif';
-    ctx.fillText('Player 1 Controls: W/S', canvas.width / 2, canvas.height / 2);
-    ctx.fillText('Player 2 Controls: Up/Down Arrows', canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText('Player 1: W (Flap) / S (Shoot)', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('Player 2: Up Arrow (Flap) / Down Arrow (Shoot)', canvas.width / 2, canvas.height / 2 + 40);
     ctx.fillText('Press Space to Start', canvas.width / 2, canvas.height / 2 + 100);
 }
 
