@@ -78,13 +78,31 @@ class Player {
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         ctx.rotate(this.vy * 0.05);
+
+        // Body
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.width / 2, -this.height / 4, this.width, this.height / 2);
+
+        // Cockpit
+        ctx.fillStyle = 'white';
+        ctx.fillRect(-this.width / 4, -this.height / 2, this.width / 2, this.height / 4);
+
+        // Wings
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.moveTo(0, -this.height / 2);
-        ctx.lineTo(this.width / 2, this.height / 2);
-        ctx.lineTo(-this.width / 2, this.height / 2);
+        ctx.moveTo(-this.width / 2, -this.height / 4);
+        ctx.lineTo(-this.width / 2 - 10, -this.height / 4 - 5);
+        ctx.lineTo(-this.width / 2, this.height / 4);
         ctx.closePath();
         ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(this.width / 2, -this.height / 4);
+        ctx.lineTo(this.width / 2 + 10, -this.height / 4 - 5);
+        ctx.lineTo(this.width / 2, this.height / 4);
+        ctx.closePath();
+        ctx.fill();
+
         ctx.restore();
     }
 }
@@ -171,12 +189,64 @@ class PowerUp {
     }
 
     draw() {
-        ctx.fillStyle = 'yellow';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.fillStyle = 'black';
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.type[0].toUpperCase(), this.x + this.width / 2, this.y + this.height / 1.5);
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+        switch (this.type) {
+            case powerUpTypes.HEALTH:
+                ctx.fillStyle = 'red';
+                ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('+', 0, 7);
+                break;
+            case powerUpTypes.SHIELD:
+                ctx.fillStyle = 'blue';
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(this.width / 2, this.height / 2);
+                ctx.lineTo(-this.width / 2, this.height / 2);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            case powerUpTypes.RAPID_FIRE:
+                ctx.fillStyle = 'yellow';
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(-this.width / 2 + (i * 10), -this.height / 2, 5, this.height);
+                }
+                break;
+            case powerUpTypes.TRIPLE_SHOT:
+                ctx.fillStyle = 'purple';
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(0, -this.height / 4 + (i * 10), 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+            case powerUpTypes.PIERCING_SHOT:
+                ctx.fillStyle = 'cyan';
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(this.width / 2, 0);
+                ctx.lineTo(0, this.height / 2);
+                ctx.lineTo(-this.width / 2, 0);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            case powerUpTypes.SCREEN_BOMB:
+                ctx.fillStyle = 'orange';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('B', 0, 7);
+                break;
+        }
+
+        ctx.restore();
     }
 }
 
@@ -196,8 +266,25 @@ class Asteroid {
     }
 
     draw() {
-        ctx.fillStyle = 'gray';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = '#8B4513'; // SaddleBrown
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width / 2, this.y);
+        ctx.lineTo(this.x + this.width, this.y + this.height / 3);
+        ctx.lineTo(this.x + this.width * 0.8, this.y + this.height);
+        ctx.lineTo(this.x + this.width * 0.2, this.y + this.height);
+        ctx.lineTo(this.x, this.y + this.height / 3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#A0522D'; // Sienna
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.width / 2, this.y + this.height * 0.1);
+        ctx.lineTo(this.x + this.width * 0.9, this.y + this.height / 3);
+        ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.9);
+        ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.9);
+        ctx.lineTo(this.x + this.width * 0.1, this.y + this.height / 3);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 
@@ -219,7 +306,12 @@ class Projectile {
 
     draw() {
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.width, this.y + this.height / 2);
+        ctx.lineTo(this.x, this.y + this.height);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 
