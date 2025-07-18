@@ -498,12 +498,12 @@ function draw() {
 function drawHUD() {
     // Player 1 Health
     ctx.fillStyle = 'red';
-    ctx.fillRect(30, 20, 200, 20);
+    ctx.fillRect(50, 20, 200, 20);
     ctx.fillStyle = 'green';
-    ctx.fillRect(30, 20, player1.health * 2, 20);
+    ctx.fillRect(50, 20, player1.health * 2, 20);
     ctx.fillStyle = 'white';
     ctx.font = '20px sans-serif';
-    ctx.fillText('Player 1', 30, 60);
+    ctx.fillText('Player 1', 50, 60);
 
     // Player 2 Health
     ctx.fillStyle = 'red';
@@ -515,9 +515,9 @@ function drawHUD() {
 
     // Power-up indicators
     ctx.textAlign = 'left';
-    drawPowerUpIndicator(player1, 20, 80);
+    drawPowerUpIndicator(player1, 50, 80);
     ctx.textAlign = 'right';
-    drawPowerUpIndicator(player2, canvas.width - 20, 80);
+    drawPowerUpIndicator(player2, canvas.width - 50, 80);
 }
 
 function drawPowerUpIndicator(player, x, y) {
