@@ -605,7 +605,7 @@ function drawPowerUpIndicator(player, x, y) {
     let powerUpY = y;
     ctx.font = '16px sans-serif';
     if (player.shield) {
-        ctx.fillStyle = 'blue';
+        ctx.fillStyle = '#00BFFF'; // DeepSkyBlue
         ctx.fillText('Shield', x, powerUpY);
         powerUpY += 20;
     }
